@@ -17,6 +17,8 @@ import numpy as np
 import cv2
 import sys
 
+RECORD = True;
+
 def main():
     # Get command line arguments
     print USAGE
@@ -42,10 +44,14 @@ def main():
     # Define the codec and create VideoWriter object
     fourcc = cv2.cv.CV_FOURCC('M','J','P','G')
     outputFileName = basename + str(cameraNum) + '_' + strftime('%Y%m%d_%H %M %S', localtime())
-    out = cv2.VideoWriter(outputFileName + '.avi',fourcc, fps, (wd,ht), True)
+    
+    if RECORD:
+        out = cv2.VideoWriter(outputFileName + '.avi',fourcc, fps, (wd,ht), True)
     
     # start with unknown position
     blueMarker = (-1,-1)
+    redMarker = (-1,-1)
+    greenMarker = (-1,-1)
 
     while(cap.isOpened()):
         
@@ -56,26 +62,49 @@ def main():
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
         # define range of blue color in HSV
-        lower_blue = np.array([110,75,75])
+        lower_blue = np.array([110,50,50])
         upper_blue = np.array([130,255,255])
+        
+        # define range of red color in HSV
+        lower_red1 = np.array([140,100,100])
+        upper_red1 = np.array([255,255,255])
+        lower_red2 = np.array([0,100,100])
+        upper_red2 = np.array([30,255,255])
+        
+        # define range of red color in HSV
+        lower_green = np.array([60,20,20])
+        upper_green = np.array([100,255,255])
 
-        # create blue mask
+        # create masks
         maskBlue = createMask(hsv, lower_blue, upper_blue)
+        maskRed1 = createMask(hsv, lower_red1, upper_red1)
+        maskRed2 = createMask(hsv, lower_red2, upper_red2)
+        maskRed = cv2.bitwise_or(maskRed1, maskRed2)
+        maskGreen = createMask(hsv, lower_green, upper_green)
         
         # Bitwise-AND mask and original image
         resultBlue = cv2.bitwise_and(frame, frame, mask=maskBlue)
+        resultRed = cv2.bitwise_and(frame, frame, mask=maskRed)
+        resultGreen = cv2.bitwise_and(frame, frame, mask=maskGreen)
         
-        # locate marker and draw blueMarker on image
+        # locate marker and draw point on image
         blueMarker = locateMarker(maskBlue, wd, ht, blueMarker)
-        radius = 5
-        if blueMarker[0] != -1 and blueMarker[1] != -1:
-            cv2.circle(resultBlue, blueMarker, radius, (0,255,255), -1, 1)
+        redMarker = locateMarker(maskRed, wd, ht, redMarker)
+        greenMarker = locateMarker(maskGreen, wd, ht, greenMarker)
+        radius = 3
+        if blueMarker != (-1,-1):
+            cv2.circle(frame, blueMarker, radius, (0,255,255), -1, 1)
+        if redMarker != (-1,-1):
+            cv2.circle(frame, redMarker, radius, (0,255,255), -1, 1)
+        if greenMarker != (-1,-1):
+            cv2.circle(frame, greenMarker, radius, (0,255,255), -1, 1)
         
-        # Write frame to file
-        #out.write(res)
+        if RECORD:
+            # Write frame to file
+            out.write(frame)
 
         # Display  frame
-        cv2.imshow(outputFileName, resultBlue)
+        cv2.imshow(outputFileName, frame)
         
         # Quit on 'q' press
         if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -83,13 +112,14 @@ def main():
 
     # Release everything
     cap.release()
-    out.release()
+    if RECORD:
+        out.release()
     cv2.destroyAllWindows()
     
 # this function calculates average position of the color marker 
 # prevMark value of (-1,-1) means marker has not been found 
 def locateMarker(mask, wd, ht, prevMark): 
-    searchSize = 25
+    searchSize = 50
     count = 1 # can't divide by zero so must start at one
     xSum = 0
     ySum = 0
@@ -132,7 +162,7 @@ def locateMarker(mask, wd, ht, prevMark):
     print "count: " + str(count)
     
     # Object not found unless a large chunk is seen
-    if count < 100:
+    if count < 50:
         xAvg = -1
         yAvg = -1
     return (xAvg,yAvg)  
