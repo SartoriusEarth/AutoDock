@@ -129,6 +129,11 @@ def main():
             # project 3D points to image plane
             imgpts, jac = cv2.projectPoints(axis, rvecs, tvecs, mtx, dist)
             
+            # print "rvecs: " + str(rvecs)
+            # print "tvecs: " + str(tvecs)
+            
+            computeCameraCoord(rvecs, tvecs)
+            
             # Draw axis
             markerOrigin = tuple(np.squeeze(np.asarray(imageCoord[0])))
             cv2.line(frame, markerOrigin, tuple(np.squeeze(np.asarray(imgpts[0]))), (255,0,0), 5)  # blue
@@ -215,6 +220,19 @@ def createMask(hsv, lower, upper):
     maskBlue = cv2.morphologyEx(maskBlue, cv2.MORPH_OPEN, kernel) 
     
     return maskBlue
+   
+# Compute the cameras coordinates relative to the marker origin
+# takes a rotation vector and translation vector
+# returns cameras coordinates relative 
+def computeCameraCoord(rvec, tvec):
+    # compute rotation matrix from rotation vector
+    rmat, jacobian = cv2.Rodrigues(rvec)
+    print "Camera rotation matrix:\n" + str(rmat)
+    
+    # Transpose rotation matrix and multiply its negative by the translation vector
+    rmat_trans = rmat.transpose()
+    t = -rmat_trans*np.asmatrix(tvec)
+    print "camera position:\n" + str(t)
     
 # Run
 main()
