@@ -1,11 +1,34 @@
+USAGE = """
+
+This program calibrates a camera
+
+Requires extra parameter '1' to override existing camera calibration
+
+Usage:
+python camera_calibration.py
+python camera_calibration.py 1 -to write to file
+
+Example:
+python camera_calibration.py 1
+
+"""
+
+import sys
 import numpy as np
 import cv2
-import glob
+import test_camera_calibration 
 
 CHESSBOARD_WIDTH = 9
 CHESSBAORD_HEIGHT = 7
 
 def main():
+    # Get command line arguments
+    print USAGE
+    write = False
+    if len(sys.argv) == 2:
+        if int(sys.argv[1]) == 1:
+            write = True
+
     # termination criteria for cornerSubPix function
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 
@@ -76,35 +99,11 @@ def main():
     print "finished\n"
     
     # Write calibration results to file so they can be retrieved easy later
-    write_to_file(mtx, dist)
-    
-    # Read calibration results from file
-    mxt, dist = read_from_file()
-    
+    if write:
+        write_to_file(mtx, dist)
 
-    # # Test calibration
-    # while cap.isOpened():
-
-        # ret, img = cap.read()
-
-        # # Undistort video
-        # newcameramtx, roi=cv2.getOptimalNewCameraMatrix(mtx,dist,(w,h),1,(w,h))
-        # dst = cv2.undistort(img, mtx, dist, None, newcameramtx)
-
-        # # w,h,d = dst.shape
-        # # print str(w) + " " + str(h)
-        
-        # # crop the image
-        # x,y,w,h = roi
-        # newImg = dst[y:y+h, x:x+w]
-
-        # cv2.imshow('img',dst)
-        
-        # # Quit on 'q' press
-        # if cv2.waitKey(1) & 0xFF == ord('q'):
-            # break
-            
-    # cv2.destroyAllWindows()
+    # Test calibration
+    test_camera_calibration.undistort()
 
 # Write camera calibration data to a file
 def write_to_file (mtx, dist):
@@ -118,7 +117,7 @@ def write_to_file (mtx, dist):
     f.close()
     
     print "calibration results written to file cam_cal.txt\n"
-
+    
 # Read camera calibration read from file
 def read_from_file ():
     # Open file to read from
@@ -132,7 +131,10 @@ def read_from_file ():
     # Close file
     f.close()
     
+    print "Read camera calibration data file"
+    
     return mtx, dist
     
-# Run program    
-main()
+# Run program, but not when called from an import statement 
+if __name__ == "__main__": 
+    main()
