@@ -2,7 +2,7 @@ USAGE = """
 
 This program calibrates a camera
 
-Requires extra parameter '1' to override existing camera calibration
+Requires extra parameter '1' to save calibration
 
 Usage:
 python camera_calibration.py
@@ -16,7 +16,6 @@ python camera_calibration.py 1
 import sys
 import numpy as np
 import cv2
-import test_camera_calibration 
 
 CHESSBOARD_WIDTH = 9
 CHESSBAORD_HEIGHT = 7
@@ -102,8 +101,32 @@ def main():
     if write:
         write_to_file(mtx, dist)
 
+    # **** View calibration results ****
+    
     # Test calibration
-    test_camera_calibration.undistort()
+    while cap.isOpened():
+
+        ret, img = cap.read()
+
+        newImg = undistort(img, mtx, dist, w, h)
+    
+        cv2.imshow('Original Image', img)
+        cv2.imshow('Undistorted Image', newImg)
+        
+        # Quit on 'q' press
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+            
+    cv2.destroyAllWindows()
+    
+def undistort(img, mtx, dist, w, h):
+    # Undistort video
+    newcameramtx, roi=cv2.getOptimalNewCameraMatrix(mtx,dist,(w,h),1,(w,h))
+    i = cv2.undistort(img, mtx, dist, None, newcameramtx)
+
+    # TODO crop undistorted image
+    
+    return i
 
 # Write camera calibration data to a file
 def write_to_file (mtx, dist):
