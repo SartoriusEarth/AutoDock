@@ -1,12 +1,14 @@
 USAGE = """
 
-This program calibrates a camera
+This program calibrates a camera.  To perform calibration, hold a checker board in front of the camera and move it around getting samples at all edges of the video feed and with different skewing angles and different distances.
 
-Requires extra parameter '1' to save calibration
+Press 'q' when enough samples have been collected, then the distortion matrices will be calculated.  The program automatically performs the calculation after 50 samples have been collected to avoid excessive computation times. 
+
+Requires extra parameter '1' to save calibration to avoid accidentally overriding previous calibration.
 
 Usage:
 python camera_calibration.py
-python camera_calibration.py 1 -to write to file
+python camera_calibration.py 1 -to save calibration
 
 Example:
 python camera_calibration.py 1
@@ -27,6 +29,8 @@ def main():
     if len(sys.argv) == 2:
         if int(sys.argv[1]) == 1:
             write = True
+    else:
+        print "Warning, calibration results will not be saved. Run >python camera_calibration.py 1 to save results."
 
     # termination criteria for cornerSubPix function
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
