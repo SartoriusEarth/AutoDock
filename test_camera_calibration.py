@@ -23,8 +23,7 @@ def undistort():
         ret, img = cap.read()
 
         # Undistort video
-        newcameramtx, roi=cv2.getOptimalNewCameraMatrix(mtx,dist,(w,h),1,(w,h))
-        newImg = cv2.undistort(img, mtx, dist, None, newcameramtx)
+        newImg = camera_calibration.undistort(img, mtx, dist, w, h)
 
         # TODO crop undistorted image
         
@@ -37,6 +36,5 @@ def undistort():
             
     cv2.destroyAllWindows()
     
-# Run program, but not when called from an import statement 
-if __name__ == "__main__": 
-    main()
+# Run program
+main()
