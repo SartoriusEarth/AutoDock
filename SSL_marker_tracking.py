@@ -6,60 +6,106 @@ white = (255,255,255)
 black = (0,0,0)
 
 def main():
-    # Create concentric SSL image
-    w = 200;
-    h = 200;
-    img = np.zeros((h,w,3), np.uint8 );
-    center = (100,100)
-    
-    p = 0.5
-    win = 50.0 # MUST BE FLOAT ie 50.0 window size
-    
-    # create image of marker
-    createSSL(img, p, center, 200) 
-       
-    # Load image
-    img = cv2.imread("marker_sample_3.jpg")
-    h, w = img.shape[:2]  
-    img = cv2.resize(img, (w/4,h/4));
-    h, w = img.shape[:2]
-    # img[y,x]
-    
-    # convert to gray
-    imgGray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
-    thresh = 130
-    ret, imgBinary = cv2.threshold(imgGray, thresh, 255, cv2.THRESH_BINARY)
+        
+    # Create video capture object
+    cameraNum = 0
+    cap = cv2.VideoCapture(cameraNum)
 
-    # search for marker pattern
-    print "global search"
-    searchRange = [0,w,0,h] # [xmin,xmax,ymin,ymax]
-    ith = 5
-    matches = markerSearch(imgBinary, img, w, h, win, p, ith, searchRange)        
+    # SSL search parameters
+    p = 0.5
+    win = 70.0 # MUST BE FLOAT ie 50.0 window size
     
-    # average clusters of matches
-    markers = averageClusters(matches)
-    print str(markers)
+    # Start with unknown location
+    marker1 = (-1,-1)
+    marker2 = (-1,-1)
+    marker3 = (-1,-1)
+    counter = 0
     
-    markersRefined = []
-    for i in range(len(markers)):
-        # refine search
-        print "local search"
-        r = 10
-        searchRange = [markers[i][0]-r, markers[i][0]+r, markers[i][1]-r, markers[i][1]+r]
-        ith = 2
-        matchesRefined = markerSearch(imgBinary, img, w, h, win, p, ith, searchRange)
-        markersRefined = markersRefined + averageClusters(matchesRefined)
+    while(cap.isOpened()):
     
-    print str(markersRefined)
-    
-    # Draw cross at averaged match
-    for i in range(0,len(markersRefined)):       
-        l = 8 # radius of cross hares
-        # TODO edge cases
-        cv2.line(img, (markersRefined[i][0] - l, markersRefined[i][1]), (markersRefined[i][0] + l, markersRefined[i][1]), (0,0,255), 2)
-        cv2.line(img, (markersRefined[i][0], markersRefined[i][1] - l), (markersRefined[i][0], markersRefined[i][1] + l), (0,0,255), 2)
+        # Capture frame-by-frame
+        ret, img = cap.read()
+        
+        # # Display frame early
+        # cv2.imshow("image", img);
+        
+        # get width and height
+        h, w = img.shape[:2]
+        
+        # convert to gray
+        imgGray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+        thresh = 150
+        ret, imgBinary = cv2.threshold(imgGray, thresh, 255, cv2.THRESH_BINARY)
+
+        print str(counter)
+        
+        # marker location not known
+        if marker1 == (-1,-1):
+            # search for marker pattern
+            print "global search"
+            searchRange = [150,w-150,150,h-150] # [xmin,xmax,ymin,ymax]
+            ith = 7
+            matches = markerSearch(imgBinary, img, w, h, win, p, ith, searchRange)        
+            
+            # average clusters of matches
+            markers = averageClusters(matches)
+            if len(markers) > 0:
+                marker1 = markers[0]  
+            if len(markers) > 1:
+                marker2 = markers[1] 
+            if len(markers) > 2:
+                marker3 = markers[2] 
+            
+        # previous marker location known
+        else: 
+            markersRefined = []
+            # for i in range(len(markers)):
+                # # refine search
+            print "local search"
+            r = 5
+            searchRange = [marker1[0]-r, marker1[0]+r, marker1[1]-r, marker1[1]+r]
+            ith = 2
+            matchesRefined = markerSearch(imgBinary, img, w, h, win, p, ith, searchRange)
+            markersRefined = markersRefined + averageClusters(matchesRefined)
+            
+            if marker2 != (-1,-1):
+                searchRange = [marker2[0]-r, marker2[0]+r, marker2[1]-r, marker2[1]+r]
+                ith = 5
+                matchesRefined = markerSearch(imgBinary, img, w, h, win, p, ith, searchRange)
+                markersRefined = markersRefined + averageClusters(matchesRefined)
                 
-    while (True):
+            if marker3 != (-1,-1):
+                searchRange = [marker3[0]-r, marker3[0]+r, marker3[1]-r, marker3[1]+r]
+                ith = 5
+                matchesRefined = markerSearch(imgBinary, img, w, h, win, p, ith, searchRange)
+                markersRefined = markersRefined + averageClusters(matchesRefined)
+
+            if len(markersRefined) > 0:
+                marker1 = markersRefined[0] 
+            if len(markersRefined) > 1:
+                marker2 = markersRefined[1] 
+            if len(markersRefined) > 2:
+                marker3 = markersRefined[2] 
+            
+            print str(markersRefined)
+            
+            if counter > 10:
+                marker1 = (-1,-1)
+                counter = 0
+                
+            if len(markersRefined) == 0:
+                counter = counter + 1
+            else:
+                counter = 0
+        
+            # Draw cross at averaged match
+            for i in range(0,len(markersRefined)):       
+                l = 8 # radius of cross hares
+                # TODO edge cases
+                cv2.line(img, (markersRefined[i][0] - l, markersRefined[i][1]), (markersRefined[i][0] + l, markersRefined[i][1]), (0,0,255), 2)
+                cv2.line(img, (markersRefined[i][0], markersRefined[i][1] - l), (markersRefined[i][0], markersRefined[i][1] + l), (0,0,255), 2)
+                    
+        # while (True):
         # Display frame
         cv2.imshow("binary image", imgBinary);
         cv2.imshow("SSL marker detection", img);
@@ -67,14 +113,9 @@ def main():
         # Quit on 'q' press
         if cv2.waitKey(1) & 0xFF == ord('q'):
             cv2.destroyAllWindows()
+            cap.release()
             break
-        
-# Create Concentric SSL pattern            
-def createSSL(img, p, center, scale):
-    for i in range(0,10):
-        cv2.circle(img, center, int(math.pow(p,i+0.5)*scale), black, -1)
-        cv2.circle(img, center, int(math.pow(p,i+1)*scale), white, -1)
-
+    
 # **** img parameter only needed for drawing****
 # skips every ith row and column when searching.  
 # min value of ith is 1 max is 5 for reasonable results
@@ -125,20 +166,20 @@ def markerSearch(imgBinary, img, w, h, win, p, ith, searchRange):
             hnM = (hnMismatch - hnMatch) / win # matching function value
             if hnM > 0.3: 
                 matches.append((x,y))
-                # cv2.circle(img, (x,y), 2, (0,255,255), -1)
-                # print str(hnM)
+                cv2.circle(img, (x,y), 2, (0,255,255), -1)
+                print str(hnM)
                 
             vpM = (vpMismatch - vpMatch) / win # matching function value
             if vpM > 0.3: 
                 matches.append((x,y))
-                # cv2.circle(img, (x,y), 2, (255,255,0), -1)
-                # print str(vpM)
+                cv2.circle(img, (x,y), 2, (255,255,0), -1)
+                print str(vpM)
                 
             vnM = (vnMismatch - vnMatch) / win # matching function value
             if vnM > 0.3: 
                 matches.append((x,y))
-                # cv2.circle(img, (x,y), 2, (255,0,0), -1)
-                # print str(vnM)
+                cv2.circle(img, (x,y), 2, (255,0,0), -1)
+                print str(vnM)
     
     return matches
         
@@ -166,7 +207,7 @@ def averageClusters(matches):
             i = i + 1
          
         # only use matches if there were several matches in the cluster    
-        if count > 3:
+        if count > 0:
             xcen = xsum / count
             ycen = ysum / count
             result.append((xcen,ycen))
