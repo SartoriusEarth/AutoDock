@@ -34,10 +34,10 @@ def main():
         
         # convert to gray
         imgGray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
-        thresh = 150
+        thresh = 120
         ret, imgBinary = cv2.threshold(imgGray, thresh, 255, cv2.THRESH_BINARY)
 
-        print str(counter)
+        # print str(counter)
         
         # marker location not known
         if marker1 == (-1,-1):
@@ -62,9 +62,9 @@ def main():
             # for i in range(len(markers)):
                 # # refine search
             print "local search"
-            r = 5
+            r = 10
             searchRange = [marker1[0]-r, marker1[0]+r, marker1[1]-r, marker1[1]+r]
-            ith = 2
+            ith = 5
             matchesRefined = markerSearch(imgBinary, img, w, h, win, p, ith, searchRange)
             markersRefined = markersRefined + averageClusters(matchesRefined)
             
@@ -147,15 +147,15 @@ def markerSearch(imgBinary, img, w, h, win, p, ith, searchRange):
                 if x+i < w:
                     hpMatch = hpMatch + abs(imgBinary[y,x+i] - imgBinary[y,np.floor(x+i*p)]) / 255
                     hpMismatch = hpMismatch + abs(imgBinary[y,x+i] - imgBinary[y,np.floor(x+i*math.pow(0.5,0.5))]) / 255
-                if x-i > 0:   
-                    hnMatch = hnMatch + abs(imgBinary[y,x-i] - imgBinary[y,np.floor(x-i*p)]) / 255
-                    hnMismatch = hnMismatch + abs(imgBinary[y,x-i] - imgBinary[y,np.floor(x-i*math.pow(0.5,0.5))]) / 255
+                # if x-i > 0:   
+                    # hnMatch = hnMatch + abs(imgBinary[y,x-i] - imgBinary[y,np.floor(x-i*p)]) / 255
+                    # hnMismatch = hnMismatch + abs(imgBinary[y,x-i] - imgBinary[y,np.floor(x-i*math.pow(0.5,0.5))]) / 255
                 if y+i < h:    
                     vpMatch = vpMatch + abs(imgBinary[y+i,x] - imgBinary[np.floor(y+i*p),x]) / 255
                     vpMismatch = vpMismatch + abs(imgBinary[y+i,x] - imgBinary[np.floor(y+i*math.pow(0.5,0.5)),x]) / 255
-                if y-i > 0:    
-                    vnMatch = vnMatch + abs(imgBinary[y-i,x] - imgBinary[np.floor(y-i*p),x]) / 255
-                    vnMismatch = vnMismatch + abs(imgBinary[y-i,x] - imgBinary[np.floor(y-i*math.pow(0.5,0.5)),x]) / 255
+                # if y-i > 0:    
+                    # vnMatch = vnMatch + abs(imgBinary[y-i,x] - imgBinary[np.floor(y-i*p),x]) / 255
+                    # vnMismatch = vnMismatch + abs(imgBinary[y-i,x] - imgBinary[np.floor(y-i*math.pow(0.5,0.5)),x]) / 255
 
             hpM = (hpMismatch - hpMatch) / win # matching function value
             if hpM > 0.3: 
@@ -163,11 +163,11 @@ def markerSearch(imgBinary, img, w, h, win, p, ith, searchRange):
                 cv2.circle(img, (x,y), 2, (0,255,0), -1)
                 print str(hpM)
                 
-            hnM = (hnMismatch - hnMatch) / win # matching function value
-            if hnM > 0.3: 
-                matches.append((x,y))
-                cv2.circle(img, (x,y), 2, (0,255,255), -1)
-                print str(hnM)
+            # hnM = (hnMismatch - hnMatch) / win # matching function value
+            # if hnM > 0.3: 
+                # matches.append((x,y))
+                # cv2.circle(img, (x,y), 2, (0,255,255), -1)
+                # print str(hnM)
                 
             vpM = (vpMismatch - vpMatch) / win # matching function value
             if vpM > 0.3: 
@@ -175,11 +175,11 @@ def markerSearch(imgBinary, img, w, h, win, p, ith, searchRange):
                 cv2.circle(img, (x,y), 2, (255,255,0), -1)
                 print str(vpM)
                 
-            vnM = (vnMismatch - vnMatch) / win # matching function value
-            if vnM > 0.3: 
-                matches.append((x,y))
-                cv2.circle(img, (x,y), 2, (255,0,0), -1)
-                print str(vnM)
+            # vnM = (vnMismatch - vnMatch) / win # matching function value
+            # if vnM > 0.3: 
+                # matches.append((x,y))
+                # cv2.circle(img, (x,y), 2, (255,0,0), -1)
+                # print str(vnM)
     
     return matches
         
