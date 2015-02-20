@@ -13,7 +13,7 @@ def main():
 
     # SSL search parameters
     p = 0.5
-    win = 70.0 # MUST BE FLOAT ie 50.0 window size
+    win = 50.0 # MUST BE FLOAT ie 50.0 window size
     
     # Start with unknown location
     marker1 = (-1,-1)
@@ -26,6 +26,8 @@ def main():
         # Capture frame-by-frame
         ret, img = cap.read()
         
+        # cv2.circle(img, (int(win),int(win)), int(win), (0,255,0), -1)
+        
         # # Display frame early
         # cv2.imshow("image", img);
         
@@ -34,7 +36,7 @@ def main():
         
         # convert to gray
         imgGray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
-        thresh = 120
+        thresh = 110
         ret, imgBinary = cv2.threshold(imgGray, thresh, 255, cv2.THRESH_BINARY)
 
         # print str(counter)
@@ -43,8 +45,8 @@ def main():
         if marker1 == (-1,-1):
             # search for marker pattern
             print "global search"
-            searchRange = [150,w-150,150,h-150] # [xmin,xmax,ymin,ymax]
-            ith = 7
+            searchRange = [0,w,0,h] # [xmin,xmax,ymin,ymax]
+            ith = 5
             matches = markerSearch(imgBinary, img, w, h, win, p, ith, searchRange)        
             
             # average clusters of matches
@@ -62,9 +64,9 @@ def main():
             # for i in range(len(markers)):
                 # # refine search
             print "local search"
-            r = 10
+            r = 5
             searchRange = [marker1[0]-r, marker1[0]+r, marker1[1]-r, marker1[1]+r]
-            ith = 5
+            ith = 1
             matchesRefined = markerSearch(imgBinary, img, w, h, win, p, ith, searchRange)
             markersRefined = markersRefined + averageClusters(matchesRefined)
             
@@ -130,59 +132,33 @@ def markerSearch(imgBinary, img, w, h, win, p, ith, searchRange):
         
         # for every pixel in the row except edges
         for x in range(searchRange[0],searchRange[1],ith):
-            hpMatch = 0 # horizontal positive direction
-            hpMismatch = 0
-            
-            hnMatch = 0 # horizontal negative direction
-            hnMismatch = 0
-            
-            vpMatch = 0 # vertical positive direction
-            vpMismatch = 0
-            
-            vnMatch = 0 # vertical negative direction
-            vnMismatch = 0
+            match = 0 
+            mismatch = 0
             
             # loop through window 
-            for i in range(0,int(win)):
+            for i in range(10,int(win)):
                 if x+i < w:
-                    hpMatch = hpMatch + abs(imgBinary[y,x+i] - imgBinary[y,np.floor(x+i*p)]) / 255
-                    hpMismatch = hpMismatch + abs(imgBinary[y,x+i] - imgBinary[y,np.floor(x+i*math.pow(0.5,0.5))]) / 255
-                # if x-i > 0:   
-                    # hnMatch = hnMatch + abs(imgBinary[y,x-i] - imgBinary[y,np.floor(x-i*p)]) / 255
-                    # hnMismatch = hnMismatch + abs(imgBinary[y,x-i] - imgBinary[y,np.floor(x-i*math.pow(0.5,0.5))]) / 255
+                    match = match + abs(imgBinary[y,x+i] - imgBinary[y,np.floor(x+i*p)]) / 255
+                    mismatch = mismatch + abs(imgBinary[y,x+i] - imgBinary[y,np.floor(x+i*math.pow(0.5,0.5))]) / 255
+                if x-i > 0:   
+                    match = match + abs(imgBinary[y,x-i] - imgBinary[y,np.floor(x-i*p)]) / 255
+                    mismatch = mismatch + abs(imgBinary[y,x-i] - imgBinary[y,np.floor(x-i*math.pow(0.5,0.5))]) / 255
                 if y+i < h:    
-                    vpMatch = vpMatch + abs(imgBinary[y+i,x] - imgBinary[np.floor(y+i*p),x]) / 255
-                    vpMismatch = vpMismatch + abs(imgBinary[y+i,x] - imgBinary[np.floor(y+i*math.pow(0.5,0.5)),x]) / 255
-                # if y-i > 0:    
-                    # vnMatch = vnMatch + abs(imgBinary[y-i,x] - imgBinary[np.floor(y-i*p),x]) / 255
-                    # vnMismatch = vnMismatch + abs(imgBinary[y-i,x] - imgBinary[np.floor(y-i*math.pow(0.5,0.5)),x]) / 255
+                    match = match + abs(imgBinary[y+i,x] - imgBinary[np.floor(y+i*p),x]) / 255
+                    mismatch = mismatch + abs(imgBinary[y+i,x] - imgBinary[np.floor(y+i*math.pow(0.5,0.5)),x]) / 255
+                if y-i > 0:    
+                    match = match + abs(imgBinary[y-i,x] - imgBinary[np.floor(y-i*p),x]) / 255
+                    mismatch = mismatch + abs(imgBinary[y-i,x] - imgBinary[np.floor(y-i*math.pow(0.5,0.5)),x]) / 255
 
-            hpM = (hpMismatch - hpMatch) / win # matching function value
-            if hpM > 0.3: 
+            m = (mismatch - match) / 4 / win # matching function value
+            if m > 0.25: 
                 matches.append((x,y))
                 cv2.circle(img, (x,y), 2, (0,255,0), -1)
-                print str(hpM)
-                
-            # hnM = (hnMismatch - hnMatch) / win # matching function value
-            # if hnM > 0.3: 
-                # matches.append((x,y))
-                # cv2.circle(img, (x,y), 2, (0,255,255), -1)
-                # print str(hnM)
-                
-            vpM = (vpMismatch - vpMatch) / win # matching function value
-            if vpM > 0.3: 
-                matches.append((x,y))
-                cv2.circle(img, (x,y), 2, (255,255,0), -1)
-                print str(vpM)
-                
-            # vnM = (vnMismatch - vnMatch) / win # matching function value
-            # if vnM > 0.3: 
-                # matches.append((x,y))
-                # cv2.circle(img, (x,y), 2, (255,0,0), -1)
-                # print str(vnM)
+                print str(m)
     
     return matches
         
+# TODO averaging should take weights into account
 def averageClusters(matches):
     result = []
     # average matches taking clusters into account
